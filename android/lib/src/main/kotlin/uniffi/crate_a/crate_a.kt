@@ -30,7 +30,7 @@ import java.nio.CharBuffer
 import java.nio.charset.CodingErrorAction
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.ConcurrentHashMap
-import uniffi.crate_b.CrateBError
+import uniffi.crate_b.CrateBException
 import uniffi.crate_b.FfiConverterTypeCrateBError
 import uniffi.crate_b.RustBuffer as RustBufferCrateBError
 
@@ -709,6 +709,8 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 
 
 
+
+
 // For large crates we prevent `MethodTooLargeException` (see #2340)
 // N.B. the name of the extension is very misleading, since it is 
 // rather `InterfaceTooLargeException`, caused by too many methods 
@@ -725,6 +727,8 @@ internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
 internal interface IntegrityCheckingUniffiLib : Library {
     // Integrity check functions only
     fun uniffi_crate_a_checksum_func_add(
+): Short
+fun uniffi_crate_a_checksum_func_test(
 ): Short
 fun ffi_crate_a_uniffi_contract_version(
 ): Int
@@ -774,6 +778,8 @@ internal interface UniffiLib : Library {
     // FFI functions
     fun uniffi_crate_a_fn_func_add(`a`: Int,`b`: Int,uniffi_out_err: UniffiRustCallStatus, 
 ): Int
+fun uniffi_crate_a_fn_func_test(uniffi_out_err: UniffiRustCallStatus, 
+): Unit
 fun ffi_crate_a_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
 fun ffi_crate_a_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -893,6 +899,9 @@ private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_crate_a_checksum_func_add() != 3757.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_crate_a_checksum_func_test() != 11899.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
 }
@@ -1081,7 +1090,7 @@ sealed class TestException: kotlin.Exception() {
     
     class ErrorFromCrateB(
         
-        val v1: CrateBError
+        val v1: CrateBException
         ) : TestException() {
         override val message
             get() = "v1=${ v1 }"
@@ -1145,7 +1154,18 @@ public object FfiConverterTypeTestError : FfiConverterRustBuffer<TestException> 
 
 }
 
- fun `add`(`a`: kotlin.UInt, `b`: kotlin.UInt): kotlin.UInt {
+
+
+object CrateBExceptionExternalErrorHandler : UniffiRustCallStatusErrorHandler<CrateBException> {
+    override fun lift(error_buf: RustBuffer.ByValue): CrateBException =
+        uniffi.crate_b.CrateBException.ErrorHandler.lift(
+            RustBufferCrateBError.ByValue().apply {
+                capacity = error_buf.capacity
+                len = error_buf.len
+                data = error_buf.data
+            }
+        )
+} fun `add`(`a`: kotlin.UInt, `b`: kotlin.UInt): kotlin.UInt {
             return FfiConverterUInt.lift(
     uniffiRustCall() { _status ->
     UniffiLib.INSTANCE.uniffi_crate_a_fn_func_add(
@@ -1153,6 +1173,15 @@ public object FfiConverterTypeTestError : FfiConverterRustBuffer<TestException> 
 }
     )
     }
+    
+
+    @Throws(CrateBException::class) fun `test`()
+        = 
+    uniffiRustCallWithError(CrateBExceptionExternalErrorHandler) { _status ->
+    UniffiLib.INSTANCE.uniffi_crate_a_fn_func_test(
+        _status)
+}
+    
     
 
 
