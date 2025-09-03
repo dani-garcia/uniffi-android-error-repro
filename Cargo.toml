@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.dependencies]
+
+
+[patch.crates-io]
+uniffi = { git = "https://github.com/mozilla/uniffi-rs", rev = "c3a2127332d18ba9dbde1e23778b3af8f355cbac" }
+uniffi_core = { git = "https://github.com/mozilla/uniffi-rs", rev = "c3a2127332d18ba9dbde1e23778b3af8f355cbac" }
+uniffi_macros = { git = "https://github.com/mozilla/uniffi-rs", rev = "c3a2127332d18ba9dbde1e23778b3af8f355cbac" }
+uniffi_internal_macros = { git = "https://github.com/mozilla/uniffi-rs", rev = "c3a2127332d18ba9dbde1e23778b3af8f355cbac" }
+uniffi_bindgen = { git = "https://github.com/mozilla/uniffi-rs", rev = "c3a2127332d18ba9dbde1e23778b3af8f355cbac" }
+uniffi_build = { git = "https://github.com/mozilla/uniffi-rs", rev = "c3a2127332d18ba9dbde1e23778b3af8f355cbac" }
